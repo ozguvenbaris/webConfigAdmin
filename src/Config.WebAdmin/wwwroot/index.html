@@ -1,0 +1,383 @@
+﻿<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <title>Config Web Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #fff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input, select {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        label {
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9rem;
+            gap: 4px;
+        }
+
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+            button:hover {
+                background: var(--primary-hover);
+            }
+
+        .btn-edit {
+            background: #10b981;
+        }
+
+            .btn-edit:hover {
+                background: #059669;
+            }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 12px;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        tr:hover td {
+            background: #e0f2fe;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px 28px;
+            width: 400px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            animation: fadeIn 0.2s ease;
+            text-align: left;
+        }
+
+        @keyframes fadeIn {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            text-align: left;
+            font-size: 1.2rem;
+        }
+
+        .modal .row {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+            .modal .row label {
+                width: 100%;
+            }
+
+        .modal input,
+        .modal select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+            width: 100%;
+        }
+
+        .btn-cancel {
+            background: #94a3b8;
+        }
+
+            .btn-cancel:hover {
+                background: #64748b;
+            }
+    </style>
+</head>
+<body>
+    <h1>⚙️ Config Web Admin</h1>
+
+    <div class="card">
+        <div class="row">
+            <label>
+                Application:
+                <input id="appName" value="SERVICE-A" />
+            </label>
+            <label>
+                Filter by Name:
+                <input id="filter" placeholder="type to filter..." />
+            </label>
+            <button id="btnLoad">Load</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🆕 New Record</h3>
+        <div class="row">
+            <input id="name" placeholder="Name" />
+            <select id="type">
+                <option>string</option>
+                <option>int</option>
+                <option>double</option>
+                <option>bool</option>
+            </select>
+            <input id="value" placeholder="Value" />
+            <select id="active"><option value="true">true</option><option value="false">false</option></select>
+            <button id="btnUpsert">Upsert</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr><th>Id</th><th>Name</th><th>Type</th><th>Value</th><th>IsActive</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal">
+            <h3>Edit Config</h3>
+            <div class="row">
+                <label id="idLabel" style="display:none;">
+                    Id:
+                    <input id="id" readonly />
+                </label>
+                <label>
+                    Name:
+                    <input id="editName" />
+                </label>
+                <label>
+                    Type:
+                    <select id="editType">
+                        <option>string</option>
+                        <option>int</option>
+                        <option>double</option>
+                        <option>bool</option>
+                    </select>
+                </label>
+                <label>
+                    Value:
+                    <input id="editValue" />
+                </label>
+                <label>
+                    IsActive:
+                    <select id="editActive">
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                    </select>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="btnCancel">Cancel</button>
+                <button id="btnSave">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align:center; margin-top:40px; color:#94a3b8; font-size:0.85rem;">
+        Config Web Admin
+    </footer>
+
+    <script>
+        const tbody = document.getElementById('tbody');
+        const appName = document.getElementById('appName');
+        const filter = document.getElementById('filter');
+        const nameEl = document.getElementById('name');
+        const typeEl = document.getElementById('type');
+        const valueEl = document.getElementById('value');
+        const activeEl = document.getElementById('active');
+
+        const modal = document.getElementById('modalBackdrop');
+        const idLabel = document.getElementById('idLabel');
+        const idInput = document.getElementById('id');
+        const editName = document.getElementById('editName');
+        const editType = document.getElementById('editType');
+        const editValue = document.getElementById('editValue');
+        const editActive = document.getElementById('editActive');
+        const btnCancel = document.getElementById('btnCancel');
+        const btnSave = document.getElementById('btnSave');
+
+        async function load() {
+            const res = await fetch(`/api/config?appName=${encodeURIComponent(appName.value)}`);
+            const data = await res.json();
+            render(data);
+        }
+
+        function render(data) {
+            const f = (filter.value || "").toLowerCase();
+            tbody.innerHTML = "";
+            data.filter(x => x.name.toLowerCase().includes(f)).forEach(x => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td>${x.id ?? ""}</td>
+                  <td>${x.name}</td>
+                  <td>${x.type}</td>
+                  <td>${x.value}</td>
+                  <td>${x.isActive}</td>
+                  <td><button class="btn-edit" data-act="edit">Edit</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        tbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+
+            if (btn.dataset.act === 'edit') {
+                const row = btn.closest('tr').children;
+                const idValue = row[0]?.textContent.trim();
+
+                if (idValue) {
+                    idInput.value = idValue;
+                    idLabel.style.display = "block";
+                } else {
+                    idInput.value = "";
+                    idLabel.style.display = "none";
+                }
+
+                editName.value = row[1].textContent;
+                editType.value = row[2].textContent;
+                editValue.value = row[3].textContent;
+                editActive.value = row[4].textContent;
+                modal.style.display = "flex";
+            }
+        });
+
+        btnCancel.onclick = () => modal.style.display = "none";
+
+        btnSave.onclick = async () => {
+            const body = {
+                id: idInput.value.trim() || null,
+                name: editName.value.trim(),
+                type: editType.value,
+                value: editValue.value,
+                isActive: editActive.value === 'true',
+                applicationName: appName.value.trim()
+            };
+            await fetch(`/api/config/${encodeURIComponent(body.name)}?appName=${encodeURIComponent(body.applicationName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            modal.style.display = "none";
+            await load();
+        };
+
+        document.getElementById('btnLoad').onclick = load;
+        filter.oninput = load;
+
+        document.getElementById('btnUpsert').onclick = async () => {
+            const body = {
+                id: crypto.randomUUID(),
+                name: nameEl.value.trim(),
+                type: typeEl.value,
+                value: valueEl.value,
+                isActive: activeEl.value === 'true',
+                applicationName: appName.value.trim()
+            };
+            await fetch(`/api/config/${encodeURIComponent(body.name)}?appName=${encodeURIComponent(body.applicationName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            await load();
+        };
+
+        load();
+    </script>
+</body>
+</html>

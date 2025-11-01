@@ -1,0 +1,44 @@
+﻿version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+  webadmin:
+    build:
+      context: .
+      dockerfile: src/Config.WebAdmin/Dockerfile
+    container_name: config-webadmin
+    depends_on:
+      - redis
+    environment:
+      - ASPNETCORE_URLS=http://+:80   
+      - REDIS_CONNECTION=redis:6379
+    ports:
+      - "8080:80"                  
+    networks:
+      - backend
+
+  servicea:
+    build:
+      context: .
+      dockerfile: src/Sample.ServiceA/Dockerfile
+    container_name: sample-servicea
+    depends_on:
+      - redis
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+      - REDIS_CONNECTION=redis:6379
+    ports:
+      - "5000:5000"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
